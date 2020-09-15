@@ -1,0 +1,23 @@
+<div class="contents row">
+  <div class="show_container">
+    <div class="content_post_show" style="background-image: url(<%= @tweet.picture %>);">
+    </div>
+  
+  <div class="container">
+    <%= form_with(model: @tweet, local: true) do |form| %>
+      <h3>編集する</h3>
+      <%# <%= form.text_field :name, placeholder: "Nickname" %> 
+      <label>
+        <div class="form_btn">
+          <a class="form_btn_a">ファイルを選択</a>
+        </div>
+        <%= form.file_field :picture, inputImage: "画像URL", class: "displaynone" %>
+      </label>
+      
+      <%# <%= form.text_field :image, placeholder: "画像URL" %> 
+      <%= form.text_area :text, placeholder: "タイトル", rows: "10" %>
+      <%= form.submit "編集する" %>
+    <% end %>
+  </div>
+  </div>
+</div>

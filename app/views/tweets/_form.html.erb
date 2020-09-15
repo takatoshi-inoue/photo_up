@@ -1,0 +1,9 @@
+<label>
+  <div class="form_btn">
+    <a class="form_btn_a">ファイルを選択</a>
+  </div>
+    <%= form.file_field :picture, inputImage: "画像URL", class: "displaynone" %>
+</label>
+<%= form.text_area :text, placeholder: "説明文", rows: "10" %>
+<%= form.submit "Upload" %>
+
