@@ -1,4 +1,4 @@
-# 本アプリ(photo_up)を閲覧いただき誠にありがとうございます！
+# 本アプリ photo_up を閲覧いただき誠にありがとうございます！
 ![dc621f0814d769da779a5f0ca63b80f9](https://github.com/takatoshi-inoue/photo_up/blob/master/dc621f0814d769da779a5f0ca63b80f9.jpg)
 ## ●アプリケーションの概要
 #### このアプリは画像を投稿し、投稿した画像に対してコメントでコミュニケーションを取ることが出来ます。
