@@ -1,59 +1,62 @@
-#サーバ上でのアプリケーションコードが設置されているディレクトリを変数に入れておく
-app_path = File.expand_path('../../', __FILE__)
+APP_ROOT = File.expand_path(File.dirname(File.dirname(__FILE__)))
 
-#アプリケーションサーバの性能を決定する
-worker_processes 1
+# puts "APP ROOT ->>> #{APP_ROOT}"
 
-#アプリケーションの設置されているディレクトリを指定
-working_directory app_path
+if ENV['MY_RUBY_HOME'] && ENV['MY_RUBY_HOME'].include?('rvm')
+  begin
+    rvm_path = File.dirname(File.dirname(ENV['MY_RUBY_HOME']))
+    # puts "RUBY HOME ->>> #{rvm_path}"
+    rvm_lib_path = File.join(rvm_path, 'lib')
+    # $LOAD_PATH.unshift rvm_lib_path
+    # require 'rvm'
+    # RVM.use_from_path! APP_ROOT
+  rescue LoadError
+    raise "RVM ruby lib is currently unavailable."
+  end
+end
 
-#Unicornの起動に必要なファイルの設置場所を指定
-# pid "#{app_path}/tmp/pids/unicorn.pid"
+ENV['BUNDLE_GEMFILE'] = File.expand_path('../Gemfile', File.dirname(__FILE__))
+require 'bundler/setup'
 
-pid "#{root}/tmp/pids/unicorn.pid"
-stderr_path "#{root}/log/unicorn.stderr.log"
-stdout_path "#{root}/log/unicorn.stdout.log"
+if ENV['RAILS_ENV'] == 'production'
+  worker_processes 2
+else
+  worker_processes 2
+end
 
-#ポート番号を指定
-listen 3000
-
-#エラーのログを記録するファイルを指定
-# stderr_path "#{app_path}/log/unicorn.stderr.log"
-
-#通常のログを記録するファイルを指定
-# stdout_path "#{app_path}/log/unicorn.stdout.log"
-
-#Railsアプリケーションの応答を待つ上限時間を設定
-timeout 60
-
-#以下は応用的な設定なので説明は割愛
+working_directory APP_ROOT
 
 preload_app true
-GC.respond_to?(:copy_on_write_friendly=) && GC.copy_on_write_friendly = true
 
-check_client_connection false
+timeout 60
 
-run_once = true
+listen APP_ROOT + "/tmp/sockets/unicorn.sock", :backlog => 64
+
+pid APP_ROOT + "/tmp/pids/unicorn.pid"
+
+stderr_path APP_ROOT + "/log/unicorn.stderr.log"
+stdout_path APP_ROOT + "/log/unicorn.stdout.log"
 
 before_fork do |server, worker|
-  defined?(ActiveRecord::Base) &&
-    ActiveRecord::Base.connection.disconnect!
+  # puts "SERVER ->>> #{server}"
 
-  if run_once
-    run_once = false # prevent from firing again
-  end
+  defined?(ActiveRecord::Base) && ActiveRecord::Base.connection.disconnect!
 
-  old_pid = "#{server.config[:pid]}.oldbin"
-  if File.exist?(old_pid) && server.pid != old_pid
+  old_pid = APP_ROOT + '/tmp/pids/unicorn.pid.oldbin'
+  if File.exists?(old_pid) && server.pid != old_pid
     begin
-      sig = (worker.nr + 1) >= server.worker_processes ? :QUIT : :TTOU
-      Process.kill(sig, File.read(old_pid).to_i)
-    rescue Errno::ENOENT, Errno::ESRCH => e
-      logger.error e
+      Process.kill("QUIT", File.read(old_pid).to_i)
+    rescue Errno::ENOENT, Errno::ESRCH
+      # puts "Old master alerady dead"
     end
   end
 end
 
-after_fork do |_server, _worker|
-  defined?(ActiveRecord::Base) && ActiveRecord::Base.establish_connection
+after_fork do |server, worker|
+  if defined?(ActiveRecord::Base)
+    config = ActiveRecord::Base.configurations[Rails.env] || Rails.application.config.database_configuration[Rails.env]
+    config['pool'] = ENV["DB_POOL"] || ENV['RAILS_MAX_THREADS'] || 5
+
+    ActiveRecord::Base.establish_connection(config)
+  end
 end
