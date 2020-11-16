@@ -71,3 +71,4 @@ gem 'jquery-rails'
 gem 'carrierwave'
 
 gem 'fog-aws'
+
